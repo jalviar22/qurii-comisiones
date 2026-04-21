@@ -1,0 +1,173 @@
+{
+  "version": 1,
+  "description": "Reglas de comisiones configurables. Edita este archivo para agregar/quitar estructuras comerciales o modificar rangos.",
+  "segundo_pago": {
+    "description": "Regla maestra de Segundo Pago (aplica sobre la comisión base y bonos de todas las estructuras).",
+    "tiers": [
+      { "min_pct": 0.85, "max_pct": 1.0001, "factor": 1.0, "label": "100%-85%: paga 100%" },
+      { "min_pct": 0.75, "max_pct": 0.85,   "factor": 0.75, "label": "84,99%-75%: paga 75%" },
+      { "min_pct": 0.0,  "max_pct": 0.75,   "factor": 0.0, "label": "<75%: no paga" }
+    ]
+  },
+  "structures": [
+    {
+      "id": "asesores_fonbienes_moto",
+      "name": "Asesores CP Fonbienes (Moto)",
+      "company": "Fonbienes",
+      "role": "Asesor",
+      "description": "Aplica a partir del 4to mes del asesor. Asesores nuevos (mes 1-3) reciben SMLMV garantizado.",
+      "metric": "cantidad_contratos",
+      "persistencia_minima": 0.65,
+      "tiers": [
+        { "min": 0, "max": 5,  "comision_pct": 0.0,   "garantizado": 621087, "bono": 0 },
+        { "min": 6, "max": 8,  "comision_pct": 0.0,   "garantizado": "SMLMV", "bono": 200000 },
+        { "min": 9, "max": 16, "comision_pct": 0.013, "garantizado": 0, "bono": 450000 },
+        { "min": 17, "max": null, "comision_pct": 0.014, "garantizado": 0, "bono": 660000 }
+      ],
+      "reglas_especiales": {
+        "asesor_nuevo_meses": 3,
+        "asesor_nuevo_garantiza_smlmv": true,
+        "bono_requiere_persistencia_min": 0.65
+      }
+    },
+    {
+      "id": "asesores_serven_auto",
+      "name": "Asesores CP Serven (Autofinanciera)",
+      "company": "Serven",
+      "role": "Asesor",
+      "description": "Tabla por cantidad de contratos con variable según persistencia.",
+      "metric": "cantidad_contratos",
+      "persistencia_minima": 0.65,
+      "tiers": [
+        { "min": 0, "max": 2,  "comision_pct": 0.008 },
+        { "min": 3, "max": 6,  "comision_pct": 0.011 },
+        { "min": 7, "max": null, "comision_pct": 0.012 }
+      ],
+      "variable_por_persistencia": [
+        { "min_pct": 0.0,  "max_pct": 0.65,    "factor": 0.50 },
+        { "min_pct": 0.65, "max_pct": 0.70,    "factor": 0.80 },
+        { "min_pct": 0.70, "max_pct": 0.75,    "factor": 1.00 },
+        { "min_pct": 0.75, "max_pct": 0.80,    "factor": 1.10 },
+        { "min_pct": 0.80, "max_pct": 1.0001,  "factor": 1.20 }
+      ],
+      "reglas_especiales": {
+        "sin_segundo_pago_factor": 0.90
+      }
+    },
+    {
+      "id": "ge_5g",
+      "name": "Gerente de Equipo - Ciudades 5G",
+      "company": "Auto",
+      "role": "Gerente Equipo",
+      "description": "Ciudades 5G: Barranquilla, Bucaramanga, Medellín, Cali, Bogotá. Meta 20 ventas.",
+      "metric": "cantidad_contratos",
+      "persistencia_minima": 0.65,
+      "tiers": [
+        { "min": 0,  "max": 14, "comision_pct": 0.0 },
+        { "min": 15, "max": 19, "comision_pct": 0.0008, "bono_persistencia": 750000 },
+        { "min": 20, "max": 29, "comision_pct_oro": 0.001,  "comision_pct_diamante": 0.0013, "bono_persistencia": 1500000 },
+        { "min": 30, "max": null, "comision_pct_oro": 0.0015, "comision_pct_diamante": 0.0020, "bono_persistencia": 2000000 }
+      ],
+      "variable_por_persistencia": [
+        { "min_pct": 0.65, "max_pct": 0.70,   "factor": 0.40 },
+        { "min_pct": 0.70, "max_pct": 0.78,   "categoria": "oro" },
+        { "min_pct": 0.78, "max_pct": 1.0001, "categoria": "diamante" }
+      ],
+      "bonos_trimestrales": [
+        { "concepto": "Cumplimiento Meta (60 ventas trimestre)", "valor": 1000000 },
+        { "concepto": "Productividad 3,5 ventas/asesor", "valor": 1000000 },
+        { "concepto": "Productividad 4 ventas/asesor", "valor": 2000000 }
+      ]
+    },
+    {
+      "id": "ge_no_5g",
+      "name": "Gerente de Equipo - NO 5G (Auto)",
+      "company": "Auto",
+      "role": "Gerente Equipo",
+      "description": "Equipos fuera de ciudades 5G. Rangos por monto en millones de pesos.",
+      "metric": "monto_mm",
+      "persistencia_minima": 0.60,
+      "tiers": [
+        { "min": 0,    "max": 799,  "comision_60_67_99_pct": 0.0005, "comision_hasta_74_99_pct": 0.001,  "comision_desde_75_pct": 0.0012, "bono": 0 },
+        { "min": 800,  "max": 899,  "comision_60_67_99_pct": 0.0008, "comision_hasta_74_99_pct": 0.0015, "comision_desde_75_pct": 0.0018, "bono": 400000 },
+        { "min": 900,  "max": 1699, "comision_60_67_99_pct": 0.001,  "comision_hasta_74_99_pct": 0.002,  "comision_desde_75_pct": 0.0024, "bono": 800000 },
+        { "min": 1700, "max": null, "comision_60_67_99_pct": 0.0015, "comision_hasta_74_99_pct": 0.003,  "comision_desde_75_pct": 0.0036, "bono": 2000000 }
+      ],
+      "canal_aliado_comercial_ac": {
+        "comision_hasta_74_99_pct": 0.0024,
+        "comision_desde_75_pct": 0.003
+      }
+    },
+    {
+      "id": "ge_fonbienes",
+      "name": "Gerente de Equipo Fonbienes",
+      "company": "Fonbienes",
+      "role": "Gerente Equipo",
+      "description": "GE Fonbienes por cantidad de contratos.",
+      "metric": "cantidad_contratos",
+      "persistencia_minima": 0.60,
+      "tiers": [
+        { "min": 0,  "max": 34,  "comision_pct": 0.0,     "bono": 0 },
+        { "min": 35, "max": 49,  "comision_pct": 0.001,   "bono": 0 },
+        { "min": 50, "max": 69,  "comision_pct": 0.002,   "bono": 220000 },
+        { "min": 70, "max": 89,  "comision_pct": 0.0025,  "bono": 330000 },
+        { "min": 90, "max": null, "comision_pct": 0.0035, "bono": 550000 }
+      ],
+      "ajuste_por_persistencia": [
+        { "min_pct": 0.50, "max_pct": 0.55, "factor": 0.70 },
+        { "min_pct": 0.55, "max_pct": 0.60, "factor": 0.90 },
+        { "min_pct": 0.60, "max_pct": 1.0001, "factor": 1.00 }
+      ],
+      "canal_aliado_comercial_ac": {
+        "persistencia_menor_55_pct": 0.0026,
+        "persistencia_mayor_igual_55_pct": 0.0037
+      }
+    },
+    {
+      "id": "gp_auto",
+      "name": "Gerente de Producto - Auto (Multiequipo)",
+      "company": "Auto",
+      "role": "Gerente Producto",
+      "description": "GP Auto Multiequipo: mínimo 2 equipos, máximo 6 equipos.",
+      "metric": "cantidad_contratos",
+      "persistencia_minima": 0.60,
+      "tiers": [
+        { "min": 0,   "max": 49,  "comision_66_99_pct": 0.0,     "comision_79_99_pct": 0.0,     "comision_80_mas_pct": 0.0,     "bono": 0 },
+        { "min": 50,  "max": 59,  "comision_66_99_pct": 0.00027, "comision_79_99_pct": 0.0003,  "comision_80_mas_pct": 0.00033, "bono": 0 },
+        { "min": 60,  "max": 99,  "comision_66_99_pct": 0.0003,  "comision_79_99_pct": 0.00033, "comision_80_mas_pct": 0.00037, "bono": 500000 },
+        { "min": 100, "max": null, "comision_66_99_pct": 0.00033, "comision_79_99_pct": 0.00037, "comision_80_mas_pct": 0.0004,  "bono": 800000 }
+      ],
+      "canal_aliado_comercial_ac": {
+        "comision_hasta_79_99_pct": 0.0014,
+        "comision_desde_80_pct": 0.0020
+      },
+      "bonos_gestion_por_equipo": [
+        { "rango_ventas": "20-29", "valor": 350000 },
+        { "rango_ventas": "30+",   "valor": 600000 }
+      ]
+    },
+    {
+      "id": "gr_auto",
+      "name": "Gerente Regional - Auto",
+      "company": "Auto",
+      "role": "Gerente Regional",
+      "description": "GR Auto: máximo 3 GP, cada GP con máximo 4 GE. Metas por monto en MM.",
+      "metric": "monto_mm",
+      "persistencia_minima": 0.60,
+      "tiers": [
+        { "min": 0,     "max": 6999,  "comision_hasta_66_99_pct": 0.0,     "comision_desde_67_pct": 0.0,     "bono": 0 },
+        { "min": 7000,  "max": 8999,  "comision_hasta_66_99_pct": 0.0004,  "comision_desde_67_pct": 0.0006, "bono": 0 },
+        { "min": 9000,  "max": 10999, "comision_hasta_66_99_pct": 0.0005,  "comision_desde_67_pct": 0.0007, "bono": 1100000 },
+        { "min": 11000, "max": null,  "comision_hasta_66_99_pct": 0.0006,  "comision_desde_67_pct": 0.0009, "bono": 2200000 }
+      ],
+      "canal_aliado_comercial_ac": {
+        "comision_hasta_66_99_pct": 0.0014,
+        "comision_desde_67_pct": 0.0020
+      }
+    }
+  ],
+  "constantes": {
+    "SMLMV": 1423500,
+    "vigencia_nota": "El valor del SMLMV se puede editar aquí y se recalcula automáticamente."
+  }
+}
