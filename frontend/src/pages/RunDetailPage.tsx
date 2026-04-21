@@ -33,7 +33,7 @@ export function RunDetailPage() {
     const por_rol: Record<string, number> = {};
     let pagan = 0, discrepancias = 0;
     for (const r of run.resultados) {
-      por_rol[r.role] = (por_rol[r.role] || 0) + (r.valor_total_a_pagar + r.ajuste_manual);
+      por_rol[r.role] = (por_rol[r.role] || 0) + r.valor_total_a_pagar;
       if (r.valor_total_a_pagar > 0) pagan++;
       if (r.discrepancia) discrepancias++;
     }
@@ -120,7 +120,7 @@ export function RunDetailPage() {
                 <td className="money">{money(r.valor_bono_final)}</td>
                 <td className="money">{money(r.valor_garantizado)}</td>
                 <td className="money">{r.ajuste_manual ? money(r.ajuste_manual) : "—"}</td>
-                <td className="money"><b>{money(r.valor_total_a_pagar + r.ajuste_manual)}</b></td>
+                <td className="money"><b>{money(r.valor_total_a_pagar)}</b></td>
                 <td><Link to={`/runs/${run.id}/p/${r.cedula}`}>Ver →</Link></td>
               </tr>
             ))}
