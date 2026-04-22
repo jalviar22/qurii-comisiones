@@ -16,6 +16,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <nav>
             <Link to="/">Corridas</Link>
             <Link to="/upload">Nueva corrida</Link>
+            <Link to="/calculadora">Calculadora</Link>
             <Link to="/rules">Reglas</Link>
           </nav>
         </div>
