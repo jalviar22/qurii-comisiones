@@ -61,18 +61,28 @@
       "role": "Gerente Equipo",
       "description": "Ciudades 5G: Barranquilla, Bucaramanga, Medellín, Cali, Bogotá. Meta 20 ventas.",
       "metric": "cantidad_contratos",
-      "persistencia_minima": 0.65,
+      "persistencia_minima": 0.0,
       "tiers": [
-        { "min": 0,  "max": 14, "comision_pct": 0.0 },
-        { "min": 15, "max": 19, "comision_pct": 0.0008, "bono_persistencia": 750000 },
-        { "min": 20, "max": 29, "comision_pct_oro": 0.001,  "comision_pct_diamante": 0.0013, "bono_persistencia": 1500000 },
+        { "min": 0,  "max": 14, "comision_pct_oro": 0.0, "comision_pct_diamante": 0.0, "bono_persistencia": 0 },
+        { "min": 15, "max": 19, "comision_pct_oro": 0.001, "comision_pct_diamante": 0.0013, "bono_persistencia": 750000 },
+        { "min": 20, "max": 29, "comision_pct_oro": 0.0012, "comision_pct_diamante": 0.0016, "bono_persistencia": 1500000 },
         { "min": 30, "max": null, "comision_pct_oro": 0.0015, "comision_pct_diamante": 0.0020, "bono_persistencia": 2000000 }
       ],
       "variable_por_persistencia": [
-        { "min_pct": 0.65, "max_pct": 0.70,   "factor": 0.40 },
-        { "min_pct": 0.70, "max_pct": 0.78,   "categoria": "oro" },
+        { "min_pct": 0.0, "max_pct": 0.70, "factor": 1.0, "rate_below_70": 0.0008 },
+        { "min_pct": 0.70, "max_pct": 0.78, "categoria": "oro" },
         { "min_pct": 0.78, "max_pct": 1.0001, "categoria": "diamante" }
       ],
+      "canal_aliado_comercial_ac": {
+        "comision_pct": 0.002,
+        "comision_pct_bajo": 0.0008
+      },
+      "gerente_nuevo": {
+        "descripcion": "Primeros 3 meses: 0,08% flat. Si hacen >=15 ventas, pagan tabla antiguo.",
+        "comision_pct_flat": 0.0008,
+        "umbral_cantidad_tabla_antiguo": 15
+      },
+      "monto_por_venta_equivalente_mm": 70,
       "bonos_trimestrales": [
         { "concepto": "Cumplimiento Meta (60 ventas trimestre)", "valor": 1000000 },
         { "concepto": "Productividad 3,5 ventas/asesor", "valor": 1000000 },
@@ -94,6 +104,8 @@
         { "min": 1700, "max": null, "comision_60_67_99_pct": 0.0015, "comision_hasta_74_99_pct": 0.003,  "comision_desde_75_pct": 0.0036, "bono": 2000000 }
       ],
       "canal_aliado_comercial_ac": {
+        "comision_60_67_99_pct": 0.0024,
+        "comision_desde_68_pct": 0.003,
         "comision_hasta_74_99_pct": 0.0024,
         "comision_desde_75_pct": 0.003
       }
