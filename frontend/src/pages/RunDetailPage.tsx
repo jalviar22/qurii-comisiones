@@ -28,17 +28,49 @@ export function RunDetailPage() {
     });
   }, [run, filter, onlyDiscrep, structureFilter]);
 
+  type Totales = {
+    n: number;
+    comision: number;
+    bono: number;
+    garantizado: number;
+    ajuste: number;
+    total: number;
+  };
+  const zero = (): Totales => ({ n: 0, comision: 0, bono: 0, garantizado: 0, ajuste: 0, total: 0 });
+
+  const sumRows = (rows: NonNullable<typeof run>["resultados"]): Totales => {
+    const t = zero();
+    for (const r of rows) {
+      t.n += 1;
+      t.comision += r.valor_comision_final;
+      t.bono += r.valor_bono_final;
+      t.garantizado += r.valor_garantizado;
+      t.ajuste += r.ajuste_manual;
+      t.total += r.valor_total_a_pagar + r.ajuste_manual;
+    }
+    return t;
+  };
+
   const stats = useMemo(() => {
-    if (!run) return { total: 0, pagan: 0, discrepancias: 0, por_rol: {} as Record<string, number> };
-    const por_rol: Record<string, number> = {};
+    if (!run) return { total: 0, pagan: 0, discrepancias: 0, por_estructura: {} as Record<string, Totales> };
+    const por_estructura: Record<string, Totales> = {};
     let pagan = 0, discrepancias = 0;
     for (const r of run.resultados) {
-      por_rol[r.role] = (por_rol[r.role] || 0) + (r.valor_total_a_pagar + r.ajuste_manual);
+      if (!por_estructura[r.structure_id]) por_estructura[r.structure_id] = zero();
+      const t = por_estructura[r.structure_id];
+      t.n += 1;
+      t.comision += r.valor_comision_final;
+      t.bono += r.valor_bono_final;
+      t.garantizado += r.valor_garantizado;
+      t.ajuste += r.ajuste_manual;
+      t.total += r.valor_total_a_pagar + r.ajuste_manual;
       if (r.valor_total_a_pagar > 0) pagan++;
       if (r.discrepancia) discrepancias++;
     }
-    return { total: run.total_a_pagar, pagan, discrepancias, por_rol };
+    return { total: run.total_a_pagar, pagan, discrepancias, por_estructura };
   }, [run]);
+
+  const filteredTotals = useMemo(() => sumRows(filtered), [filtered]);
 
   const structures = useMemo(() => {
     if (!run) return [] as string[];
@@ -65,15 +97,38 @@ export function RunDetailPage() {
       </div>
 
       <div className="card">
-        <h2>Totales por rol</h2>
+        <h2>Totales por estructura</h2>
         <table className="table">
-          <thead><tr><th>Rol</th><th className="money">Total</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Estructura</th>
+              <th className="money">Personas</th>
+              <th className="money">Comisión</th>
+              <th className="money">Bono</th>
+              <th className="money">Garantizado</th>
+              <th className="money">Ajuste</th>
+              <th className="money">Total</th>
+            </tr>
+          </thead>
           <tbody>
-            {Object.entries(stats.por_rol).map(([k, v]) => (
-              <tr key={k}><td>{k}</td><td className="money">{money(v)}</td></tr>
+            {Object.entries(stats.por_estructura).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => (
+              <tr
+                key={k}
+                onClick={() => setStructureFilter(k === structureFilter ? "all" : k)}
+                style={{ cursor: "pointer", background: k === structureFilter ? "var(--bg-hover, #f1f5f9)" : undefined }}
+              >
+                <td><b>{k}</b></td>
+                <td className="money">{v.n}</td>
+                <td className="money">{money(v.comision)}</td>
+                <td className="money">{money(v.bono)}</td>
+                <td className="money">{money(v.garantizado)}</td>
+                <td className="money">{v.ajuste ? money(v.ajuste) : "—"}</td>
+                <td className="money"><b>{money(v.total)}</b></td>
+              </tr>
             ))}
           </tbody>
         </table>
+        <p className="note" style={{ marginTop: 8 }}>Tip: clic en una fila para filtrar la tabla de abajo por esa estructura.</p>
       </div>
 
       <div className="card">
@@ -88,6 +143,15 @@ export function RunDetailPage() {
             <input type="checkbox" checked={onlyDiscrep} onChange={(e) => setOnlyDiscrep(e.target.checked)} />
             Solo discrepancias
           </label>
+        </div>
+
+        <div className="grid-stats" style={{ marginBottom: 12 }}>
+          <div className="card stat"><span className="label">Personas filtradas</span><span className="value">{filteredTotals.n}</span></div>
+          <div className="card stat"><span className="label">Comisión</span><span className="value">{money(filteredTotals.comision)}</span></div>
+          <div className="card stat"><span className="label">Bono</span><span className="value">{money(filteredTotals.bono)}</span></div>
+          <div className="card stat"><span className="label">Garantizado</span><span className="value">{money(filteredTotals.garantizado)}</span></div>
+          <div className="card stat"><span className="label">Ajuste</span><span className="value">{money(filteredTotals.ajuste)}</span></div>
+          <div className="card stat"><span className="label">Total filtrado</span><span className="value">{money(filteredTotals.total)}</span></div>
         </div>
         <table className="table">
           <thead>
