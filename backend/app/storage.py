@@ -51,7 +51,7 @@ def save_run(
         created_at=datetime.now(UTC),
         created_by=created_by,
         total_registros=len(resultados),
-        total_a_pagar=sum(r.valor_total_a_pagar + r.ajuste_manual for r in resultados),
+        total_a_pagar=sum(r.valor_total_a_pagar for r in resultados),
         resultados=resultados,
     )
     with _run_path(run.id).open("w", encoding="utf-8") as f:

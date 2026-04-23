@@ -67,6 +67,22 @@ a:hover { text-decoration: underline; }
 
 .grid-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
 
+.grid-canales { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.canal-card {
+  display: flex; flex-direction: column; gap: 4px; align-items: flex-start;
+  padding: 14px 16px; background: white; border: 2px solid var(--border);
+  border-radius: 12px; cursor: pointer; text-align: left; transition: all 0.15s;
+  font: inherit;
+}
+.canal-card:hover { border-color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.canal-card.active { border-color: var(--primary); background: #f0f7ff; }
+.canal-card .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; }
+.canal-card .value { font-size: 20px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.canal-card .note { color: var(--muted); font-size: 12px; }
+
+.btn.secondary { background: #e2e8f0; color: #334155; }
+.btn.secondary:hover { background: #cbd5e1; }
+
 .dropzone {
   border: 2px dashed var(--border); border-radius: 12px; padding: 40px;
   text-align: center; color: var(--muted); cursor: pointer;

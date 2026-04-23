@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { downloadWithAuth, excelUrl, getRun } from "../api";
 import type { CalculationRun } from "../api";
-import { MESES, money, pct } from "../utils";
+import { CANALES, canalOf, MESES, money, pct, type Canal } from "../utils";
 
 export function RunDetailPage() {
   const { id = "" } = useParams();
@@ -10,6 +10,7 @@ export function RunDetailPage() {
   const [filter, setFilter] = useState("");
   const [onlyDiscrep, setOnlyDiscrep] = useState(false);
   const [structureFilter, setStructureFilter] = useState("all");
+  const [canalFilter, setCanalFilter] = useState<Canal | "all">("all");
 
   useEffect(() => { getRun(id).then(setRun); }, [id]);
 
@@ -19,6 +20,7 @@ export function RunDetailPage() {
     return run.resultados.filter((r) => {
       if (onlyDiscrep && !r.discrepancia) return false;
       if (structureFilter !== "all" && r.structure_id !== structureFilter) return false;
+      if (canalFilter !== "all" && canalOf(r) !== canalFilter) return false;
       if (!q) return true;
       return (
         r.nombre.toLowerCase().includes(q) ||
@@ -26,7 +28,7 @@ export function RunDetailPage() {
         r.structure_id.toLowerCase().includes(q)
       );
     });
-  }, [run, filter, onlyDiscrep, structureFilter]);
+  }, [run, filter, onlyDiscrep, structureFilter, canalFilter]);
 
   type Totales = {
     n: number;
@@ -52,10 +54,28 @@ export function RunDetailPage() {
   };
 
   const stats = useMemo(() => {
-    if (!run) return { total: 0, pagan: 0, discrepancias: 0, por_estructura: {} as Record<string, Totales> };
+    const emptyCanales = Object.fromEntries(
+      CANALES.map((c) => [c, { total: 0, personas: 0, pagan: 0 }])
+    ) as Record<Canal, { total: number; personas: number; pagan: number }>;
+    if (!run) {
+      return {
+        total: 0,
+        pagan: 0,
+        discrepancias: 0,
+        por_canal: emptyCanales,
+        por_estructura: {} as Record<string, Totales>,
+      };
+    }
+    const por_canal = emptyCanales;
     const por_estructura: Record<string, Totales> = {};
     let pagan = 0, discrepancias = 0;
     for (const r of run.resultados) {
+      const c = canalOf(r);
+      if (c !== "Otro") {
+        por_canal[c].total += r.valor_total_a_pagar;
+        por_canal[c].personas += 1;
+        if (r.valor_total_a_pagar > 0) por_canal[c].pagan += 1;
+      }
       if (!por_estructura[r.structure_id]) por_estructura[r.structure_id] = zero();
       const t = por_estructura[r.structure_id];
       t.n += 1;
@@ -67,7 +87,7 @@ export function RunDetailPage() {
       if (r.valor_total_a_pagar > 0) pagan++;
       if (r.discrepancia) discrepancias++;
     }
-    return { total: run.total_a_pagar, pagan, discrepancias, por_estructura };
+    return { total: run.total_a_pagar, pagan, discrepancias, por_canal, por_estructura };
   }, [run]);
 
   const filteredTotals = useMemo(() => sumRows(filtered), [filtered]);
@@ -94,6 +114,33 @@ export function RunDetailPage() {
         <div className="card stat"><span className="label">Personas</span><span className="value">{run.total_registros}</span></div>
         <div className="card stat"><span className="label">Con pago &gt; 0</span><span className="value">{stats.pagan}</span></div>
         <div className="card stat"><span className="label">Discrepancias con sistema</span><span className="value" style={{ color: stats.discrepancias ? "var(--danger)" : "var(--success)" }}>{stats.discrepancias}</span></div>
+      </div>
+
+      <div className="card">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <h2 style={{ margin: 0 }}>Totales por canal</h2>
+          {canalFilter !== "all" && (
+            <button className="btn secondary" onClick={() => setCanalFilter("all")}>Limpiar filtro</button>
+          )}
+        </div>
+        <div className="grid-canales">
+          {CANALES.map((c) => {
+            const s = stats.por_canal[c];
+            const active = canalFilter === c;
+            return (
+              <button
+                key={c}
+                className={`card canal-card${active ? " active" : ""}`}
+                onClick={() => setCanalFilter(active ? "all" : c)}
+                title={active ? "Quitar filtro" : `Ver solo ${c}`}
+              >
+                <span className="label">{c}</span>
+                <span className="value">{money(s.total)}</span>
+                <span className="note">{s.pagan} / {s.personas} personas</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="card">
@@ -135,6 +182,10 @@ export function RunDetailPage() {
         <div className="row" style={{ marginBottom: 12 }}>
           <input className="input" placeholder="Buscar por nombre, cédula o estructura…"
                  value={filter} onChange={(e) => setFilter(e.target.value)} />
+          <select className="select" value={canalFilter} onChange={(e) => setCanalFilter(e.target.value as Canal | "all")}>
+            <option value="all">Todos los canales</option>
+            {CANALES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
           <select className="select" value={structureFilter} onChange={(e) => setStructureFilter(e.target.value)}>
             <option value="all">Todas las estructuras</option>
             {structures.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -184,7 +235,7 @@ export function RunDetailPage() {
                 <td className="money">{money(r.valor_bono_final)}</td>
                 <td className="money">{money(r.valor_garantizado)}</td>
                 <td className="money">{r.ajuste_manual ? money(r.ajuste_manual) : "—"}</td>
-                <td className="money"><b>{money(r.valor_total_a_pagar + r.ajuste_manual)}</b></td>
+                <td className="money"><b>{money(r.valor_total_a_pagar)}</b></td>
                 <td><Link to={`/runs/${run.id}/p/${r.cedula}`}>Ver →</Link></td>
               </tr>
             ))}

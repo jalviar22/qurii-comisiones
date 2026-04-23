@@ -43,7 +43,7 @@ export function PersonDetailPage() {
 
   if (!run || !persona) return <p className="note">Cargando…</p>;
 
-  const total = persona.valor_total_a_pagar + persona.ajuste_manual;
+  const total = persona.valor_total_a_pagar;
 
   return (
     <>
