@@ -51,7 +51,7 @@ def build_individual_pdf(res: ComputedCommission) -> bytes:
         ["Garantizado", _money(res.valor_garantizado)],
         ["Bono", _money(res.valor_bono_final)],
         ["Ajuste manual", _money(res.ajuste_manual)],
-        ["TOTAL a pagar", _money(res.valor_total_a_pagar + res.ajuste_manual)],
+        ["TOTAL a pagar", _money(res.valor_total_a_pagar)],
     ]
     t = Table(data, colWidths=[9 * cm, 6 * cm])
     t.setStyle(

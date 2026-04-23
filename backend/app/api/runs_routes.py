@@ -82,10 +82,11 @@ def adjust_commission(
         if r.cedula == cedula:
             r.ajuste_manual = ajuste
             r.motivo_ajuste = motivo
-            # Recalculamos total con ajuste
+            # valor_total_a_pagar incluye siempre el ajuste (convención única)
             r.valor_total_a_pagar = round(
                 r.valor_comision_final + r.valor_bono_final + r.valor_garantizado + ajuste, 2
             )
+            run.total_a_pagar = sum(x.valor_total_a_pagar for x in run.resultados)
             update_run(run)
             return r
     raise HTTPException(status_code=404, detail=f"No se encontró persona con cédula {cedula}")

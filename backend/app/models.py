@@ -49,6 +49,14 @@ class PersonaInput(BaseModel):
     is_5g: bool = False
     is_canal_ac: bool = False
 
+    # Volumen combinado del equipo base + AC (usado para seleccionar tier de bono
+    # y categoría cuando corresponde). En GE, si el equipo tiene AC, base y AC
+    # son PersonaInput separadas pero comparten estos valores.
+    cantidad_combinada: int = 0
+    monto_combinado_mm: float = 0.0
+    # Marca si esta persona "porta" el bono del equipo combinado (evita pagarlo 2 veces).
+    asigna_bono_combinado: bool = True
+
     # Valores que el sistema (Excel de origen) ya trae — los usamos para validar
     sistema_porcentaje_comision: float | str | None = None
     sistema_monto_comision: float | None = None

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { downloadWithAuth, excelUrl, getRun } from "../api";
 import type { CalculationRun } from "../api";
-import { MESES, money, pct } from "../utils";
+import { CANALES, canalOf, MESES, money, pct, type Canal } from "../utils";
 
 export function RunDetailPage() {
   const { id = "" } = useParams();
@@ -10,6 +10,7 @@ export function RunDetailPage() {
   const [filter, setFilter] = useState("");
   const [onlyDiscrep, setOnlyDiscrep] = useState(false);
   const [structureFilter, setStructureFilter] = useState("all");
+  const [canalFilter, setCanalFilter] = useState<Canal | "all">("all");
 
   useEffect(() => { getRun(id).then(setRun); }, [id]);
 
@@ -19,6 +20,7 @@ export function RunDetailPage() {
     return run.resultados.filter((r) => {
       if (onlyDiscrep && !r.discrepancia) return false;
       if (structureFilter !== "all" && r.structure_id !== structureFilter) return false;
+      if (canalFilter !== "all" && canalOf(r) !== canalFilter) return false;
       if (!q) return true;
       return (
         r.nombre.toLowerCase().includes(q) ||
@@ -26,18 +28,26 @@ export function RunDetailPage() {
         r.structure_id.toLowerCase().includes(q)
       );
     });
-  }, [run, filter, onlyDiscrep, structureFilter]);
+  }, [run, filter, onlyDiscrep, structureFilter, canalFilter]);
 
   const stats = useMemo(() => {
-    if (!run) return { total: 0, pagan: 0, discrepancias: 0, por_rol: {} as Record<string, number> };
-    const por_rol: Record<string, number> = {};
+    const emptyCanales = Object.fromEntries(
+      CANALES.map((c) => [c, { total: 0, personas: 0, pagan: 0 }])
+    ) as Record<Canal, { total: number; personas: number; pagan: number }>;
+    if (!run) return { total: 0, pagan: 0, discrepancias: 0, por_canal: emptyCanales };
+    const por_canal = emptyCanales;
     let pagan = 0, discrepancias = 0;
     for (const r of run.resultados) {
-      por_rol[r.role] = (por_rol[r.role] || 0) + (r.valor_total_a_pagar + r.ajuste_manual);
+      const c = canalOf(r);
+      if (c !== "Otro") {
+        por_canal[c].total += r.valor_total_a_pagar;
+        por_canal[c].personas += 1;
+        if (r.valor_total_a_pagar > 0) por_canal[c].pagan += 1;
+      }
       if (r.valor_total_a_pagar > 0) pagan++;
       if (r.discrepancia) discrepancias++;
     }
-    return { total: run.total_a_pagar, pagan, discrepancias, por_rol };
+    return { total: run.total_a_pagar, pagan, discrepancias, por_canal };
   }, [run]);
 
   const structures = useMemo(() => {
@@ -65,21 +75,40 @@ export function RunDetailPage() {
       </div>
 
       <div className="card">
-        <h2>Totales por rol</h2>
-        <table className="table">
-          <thead><tr><th>Rol</th><th className="money">Total</th></tr></thead>
-          <tbody>
-            {Object.entries(stats.por_rol).map(([k, v]) => (
-              <tr key={k}><td>{k}</td><td className="money">{money(v)}</td></tr>
-            ))}
-          </tbody>
-        </table>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <h2 style={{ margin: 0 }}>Totales por canal</h2>
+          {canalFilter !== "all" && (
+            <button className="btn secondary" onClick={() => setCanalFilter("all")}>Limpiar filtro</button>
+          )}
+        </div>
+        <div className="grid-canales">
+          {CANALES.map((c) => {
+            const s = stats.por_canal[c];
+            const active = canalFilter === c;
+            return (
+              <button
+                key={c}
+                className={`card canal-card${active ? " active" : ""}`}
+                onClick={() => setCanalFilter(active ? "all" : c)}
+                title={active ? "Quitar filtro" : `Ver solo ${c}`}
+              >
+                <span className="label">{c}</span>
+                <span className="value">{money(s.total)}</span>
+                <span className="note">{s.pagan} / {s.personas} personas</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="card">
         <div className="row" style={{ marginBottom: 12 }}>
           <input className="input" placeholder="Buscar por nombre, cédula o estructura…"
                  value={filter} onChange={(e) => setFilter(e.target.value)} />
+          <select className="select" value={canalFilter} onChange={(e) => setCanalFilter(e.target.value as Canal | "all")}>
+            <option value="all">Todos los canales</option>
+            {CANALES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
           <select className="select" value={structureFilter} onChange={(e) => setStructureFilter(e.target.value)}>
             <option value="all">Todas las estructuras</option>
             {structures.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -120,7 +149,7 @@ export function RunDetailPage() {
                 <td className="money">{money(r.valor_bono_final)}</td>
                 <td className="money">{money(r.valor_garantizado)}</td>
                 <td className="money">{r.ajuste_manual ? money(r.ajuste_manual) : "—"}</td>
-                <td className="money"><b>{money(r.valor_total_a_pagar + r.ajuste_manual)}</b></td>
+                <td className="money"><b>{money(r.valor_total_a_pagar)}</b></td>
                 <td><Link to={`/runs/${run.id}/p/${r.cedula}`}>Ver →</Link></td>
               </tr>
             ))}

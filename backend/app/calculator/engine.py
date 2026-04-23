@@ -62,10 +62,22 @@ def compute_commission(persona: PersonaInput) -> ComputedCommission:
 
     metric = structure.get("metric", "cantidad_contratos")
     if metric == "cantidad_contratos":
-        metric_value: float = float(persona.cantidad_contratos)
+        # Para GE 5G, la "cantidad efectiva" considera monto equivalente:
+        # max(cantidad_combinada, ceil(monto_combinado_mm / monto_por_venta_mm))
+        from math import ceil
+        cantidad_base_tier = persona.cantidad_combinada or persona.cantidad_contratos
+        monto_mm_tier = persona.monto_combinado_mm or (persona.monto_total_contratos / 1_000_000)
+        mm_por_venta = float(structure.get("monto_por_venta_equivalente_mm", 0) or 0)
+        if mm_por_venta > 0 and monto_mm_tier > 0:
+            equivalente = ceil(monto_mm_tier / mm_por_venta)
+            metric_value: float = max(float(cantidad_base_tier), float(equivalente))
+        else:
+            metric_value = float(cantidad_base_tier)
         monto_base = float(persona.monto_total_contratos)
     elif metric == "monto_mm":
-        metric_value = float(persona.monto_mm or persona.monto_total_contratos / 1_000_000)
+        # Para GE No 5G, el tier de bono se define por monto combinado (base + AC),
+        # pero la comisión aplica al monto propio.
+        metric_value = float(persona.monto_combinado_mm or persona.monto_mm or persona.monto_total_contratos / 1_000_000)
         monto_base = float(persona.monto_total_contratos)
     else:
         metric_value = 0.0
@@ -92,17 +104,48 @@ def compute_commission(persona: PersonaInput) -> ComputedCommission:
         if "comision_pct" in tier:
             pct_comision = float(tier["comision_pct"])
 
-        # GE 5G: % depende de categoría (oro/diamante) por persistencia
+        # GE 5G: % depende de categoría (oro/diamante) por persistencia.
+        # NUEVO: si cantidad_efectiva < umbral, paga 0,08% flat; si no, paga tabla antiguo.
         if "comision_pct_oro" in tier or "comision_pct_diamante" in tier:
             cat_row = _factor_by_persistencia(persistencia, structure.get("variable_por_persistencia", []))
-            if cat_row and cat_row.get("categoria") == "diamante":
+            nuevo_rules = structure.get("gerente_nuevo", {})
+            es_nuevo_ge = (
+                persona.antiguedad == Antiguedad.NUEVO
+                and nuevo_rules
+            )
+            umbral_nuevo = float(nuevo_rules.get("umbral_cantidad_tabla_antiguo", 15))
+
+            if es_nuevo_ge and metric_value < umbral_nuevo:
+                pct_comision = float(nuevo_rules.get("comision_pct_flat", 0.0008))
+                notas.append("GE Nuevo (0,08%)")
+            elif persona.is_canal_ac:
+                ac = structure.get("canal_aliado_comercial_ac", {})
+                if persistencia >= 0.70:
+                    pct_comision = float(ac.get("comision_pct", 0.002))
+                    notas.append("GE 5G AC (0,20%)")
+                elif persistencia >= 0.65:
+                    pct_comision = float(ac.get("comision_pct_bajo", 0.0008))
+                    notas.append("GE 5G AC bajo (0,08%)")
+                else:
+                    pct_comision = 0.0
+            elif cat_row and cat_row.get("categoria") == "diamante":
                 pct_comision = float(tier.get("comision_pct_diamante", 0))
                 notas.append("GE Diamante")
             elif cat_row and cat_row.get("categoria") == "oro":
                 pct_comision = float(tier.get("comision_pct_oro", 0))
                 notas.append("GE Oro")
-            # bono trimestral / bono persistencia
-            if "bono_persistencia" in tier and persistencia >= 0.70:
+            elif cat_row and "rate_below_70" in cat_row:
+                # Persistencia 65-69.99%
+                pct_comision = float(cat_row["rate_below_70"])
+                notas.append("GE 5G 65-69.99% (0,08%)")
+
+            # bono persistencia: va solo al row que porta el bono combinado.
+            # El bono aplica cuando el equipo combinado alcanza el tier mínimo
+            # (la elegibilidad ya está implícita en el tier seleccionado).
+            if (
+                "bono_persistencia" in tier
+                and persona.asigna_bono_combinado
+            ):
                 bono = max(bono, float(tier["bono_persistencia"]))
 
         # GE No 5G: 3 columnas de % por rango de persistencia
@@ -117,12 +160,17 @@ def compute_commission(persona: PersonaInput) -> ComputedCommission:
                 pct_comision = float(tier["comision_desde_75_pct"])
             if persona.is_canal_ac:
                 ac = structure.get("canal_aliado_comercial_ac", {})
-                pct_comision = float(
-                    ac.get("comision_desde_75_pct", pct_comision)
-                    if persistencia >= 0.75
-                    else ac.get("comision_hasta_74_99_pct", pct_comision)
-                )
+                if persistencia < 0.60:
+                    pct_comision = 0.0
+                elif 0.60 <= persistencia < 0.68:
+                    pct_comision = float(ac.get("comision_60_67_99_pct", ac.get("comision_hasta_74_99_pct", 0.0024)))
+                else:
+                    pct_comision = float(ac.get("comision_desde_68_pct", ac.get("comision_desde_75_pct", 0.003)))
                 notas.append("Canal Aliado Comercial (AC)")
+
+            # bono: solo al row que porta el bono combinado
+            if not persona.asigna_bono_combinado:
+                bono = 0.0
 
         # GP Auto: 3 columnas de % por rango de persistencia
         if "comision_66_99_pct" in tier:
