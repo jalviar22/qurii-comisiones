@@ -99,6 +99,41 @@ class ComputedCommission(BaseModel):
     motivo_ajuste: str | None = None
 
 
+class OpenCalculatorInput(BaseModel):
+    """Entrada de la calculadora abierta (simulación individual).
+
+    Si `structure_id == "manual"` se usa el cálculo simple `monto × % + bono + salario`.
+    En otro caso se reutiliza el motor de reglas sobre la estructura indicada y, opcionalmente,
+    se forzan `porcentaje_comision_manual`, `bono_manual` y/o `salario_manual`.
+    """
+    model_config = ConfigDict(extra="forbid")
+
+    nombre: str = Field(..., min_length=1)
+    cedula: str = Field(..., min_length=1)
+    structure_id: str = Field(..., description="ID de estructura en rules.json, o 'manual'")
+    structure_name_manual: str | None = Field(
+        default=None, description="Nombre de la estructura cuando structure_id='manual'"
+    )
+
+    porcentaje_persistencia: float = Field(default=0.0, ge=0.0, le=1.0001)
+    monto_total_ventas: float = Field(default=0.0, ge=0.0)
+    cantidad_contratos: int = Field(default=0, ge=0)
+
+    aplica_segundo_pago: bool = True
+    is_canal_ac: bool = False
+    is_5g: bool = False
+
+    antiguedad: Antiguedad = Antiguedad.ANTIGUO
+    meses_antiguedad: int | None = Field(default=None, ge=0)
+
+    # Overrides manuales (opcionales)
+    porcentaje_comision_manual: float | None = Field(default=None, ge=0.0, le=1.0)
+    bono_manual: float | None = Field(default=None, ge=0.0)
+    salario_manual: float | None = Field(default=None, ge=0.0)
+
+    notas: str | None = None
+
+
 class CalculationRun(BaseModel):
     """Corrida de un mes: resultados de todos los cálculos."""
     id: str

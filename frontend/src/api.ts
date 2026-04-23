@@ -146,6 +146,52 @@ export async function downloadWithAuth(url: string, filename: string): Promise<v
   URL.revokeObjectURL(blobUrl);
 }
 
+// ===== Calculadora abierta (simulación individual) =====
+
+export interface OpenCalculatorInput {
+  nombre: string;
+  cedula: string;
+  structure_id: string;
+  structure_name_manual?: string | null;
+  porcentaje_persistencia: number;
+  monto_total_ventas: number;
+  cantidad_contratos: number;
+  aplica_segundo_pago: boolean;
+  is_canal_ac: boolean;
+  is_5g: boolean;
+  antiguedad: "Nuevo" | "Antiguo";
+  meses_antiguedad?: number | null;
+  porcentaje_comision_manual?: number | null;
+  bono_manual?: number | null;
+  salario_manual?: number | null;
+  notas?: string | null;
+}
+
+export async function calcOpen(input: OpenCalculatorInput): Promise<ComputedCommission> {
+  const { data } = await api.post<ComputedCommission>("/api/calculator/open", input);
+  return data;
+}
+
+export async function downloadOpenExcel(input: OpenCalculatorInput, filename: string): Promise<void> {
+  const res = await api.post("/api/calculator/open/excel", input, { responseType: "blob" });
+  const blobUrl = URL.createObjectURL(res.data as Blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(blobUrl);
+}
+
+export async function downloadOpenPdf(input: OpenCalculatorInput, filename: string): Promise<void> {
+  const res = await api.post("/api/calculator/open/pdf", input, { responseType: "blob" });
+  const blobUrl = URL.createObjectURL(res.data as Blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(blobUrl);
+}
+
 export async function getRules(): Promise<any> {
   const { data } = await api.get("/api/rules");
   return data;

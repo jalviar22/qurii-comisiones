@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { Layout } from "./components/Layout";
 import { getCurrentUser } from "./api";
+import { CalculatorPage } from "./pages/CalculatorPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RunsListPage } from "./pages/RunsListPage";
 import { UploadPage } from "./pages/UploadPage";
@@ -25,6 +26,7 @@ export default function App() {
         <Route path="/runs/:id" element={<Private><RunDetailPage /></Private>} />
         <Route path="/runs/:id/p/:cedula" element={<Private><PersonDetailPage /></Private>} />
         <Route path="/rules" element={<Private><RulesPage /></Private>} />
+        <Route path="/calculadora" element={<Private><CalculatorPage /></Private>} />
       </Routes>
     </BrowserRouter>
   );
