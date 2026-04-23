@@ -257,10 +257,15 @@ def compute_commission(persona: PersonaInput) -> ComputedCommission:
 
     # --- Regla maestra Segundo Pago ---
     segundo_pago_pct = float(persona.porcentaje_segundo_pago or persistencia)
-    factor_sp = rules_store.segundo_pago_factor(segundo_pago_pct)
+    aplica_sp = structure.get("aplica_segundo_pago", True)
+    if not aplica_sp:
+        factor_sp = 1.0
+        notas.append("Estructura sin Segundo Pago: se paga 100%")
+    else:
+        factor_sp = rules_store.segundo_pago_factor(segundo_pago_pct)
 
     # Asesor nuevo: no se le aplica el descuento de segundo pago (paga 100%)
-    if es_nuevo_exento:
+    if aplica_sp and es_nuevo_exento:
         factor_sp = 1.0
         notas.append("Asesor nuevo: se paga 100% (no aplica factor Segundo Pago)")
     # Sin derecho a Segundo Pago en Serven: factor 0.90

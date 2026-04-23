@@ -201,3 +201,36 @@ export async function saveRules(rules: any): Promise<any> {
   const { data } = await api.put("/api/rules", rules);
   return data;
 }
+
+export interface RulesTemplate {
+  key: string;
+  label: string;
+  description: string;
+}
+
+export async function listTemplates(): Promise<RulesTemplate[]> {
+  const { data } = await api.get<RulesTemplate[]>("/api/rules/templates");
+  return data;
+}
+
+export async function getTemplate(key: string): Promise<any> {
+  const { data } = await api.get(`/api/rules/templates/${key}`);
+  return data;
+}
+
+export interface RulesBackup {
+  id: string;
+  filename: string;
+  created_at: string;
+  size: number;
+}
+
+export async function listBackups(): Promise<RulesBackup[]> {
+  const { data } = await api.get<RulesBackup[]>("/api/rules/backups");
+  return data;
+}
+
+export async function restoreBackup(id: string): Promise<any> {
+  const { data } = await api.post(`/api/rules/backups/${id}/restore`);
+  return data;
+}
