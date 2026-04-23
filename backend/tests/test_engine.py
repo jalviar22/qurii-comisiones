@@ -87,3 +87,71 @@ def test_structure_not_found_produces_discrepancy():
     )
     r = compute_commission(p)
     assert r.discrepancia is True
+
+
+def make_ge(**overrides) -> PersonaInput:
+    kwargs = dict(
+        cedula="ge1",
+        nombre="GE Test",
+        company=Company.AUTO,
+        role=Role.GERENTE_EQUIPO,
+        structure_id="ge_5g",
+        antiguedad=Antiguedad.ANTIGUO,
+        cantidad_contratos=20,
+        monto_total_contratos=2_000_000_000,
+        monto_mm=2000.0,
+        cantidad_combinada=20,
+        monto_combinado_mm=2000.0,
+        porcentaje_persistencia=0.75,
+        porcentaje_segundo_pago=1.0,
+        is_5g=True,
+    )
+    kwargs.update(overrides)
+    return PersonaInput(**kwargs)
+
+
+def test_ge_5g_oro_tier_20_29():
+    rules_store.reload()
+    p = make_ge(cantidad_contratos=20, monto_total_contratos=1_400_000_000,
+                monto_mm=1400.0, cantidad_combinada=20, monto_combinado_mm=1400.0,
+                porcentaje_persistencia=0.75)
+    r = compute_commission(p)
+    assert abs(r.porcentaje_comision - 0.0012) < 1e-6
+
+
+def test_ge_5g_ac_usa_0_20_pct():
+    rules_store.reload()
+    p = make_ge(
+        cedula="ge_ac", is_canal_ac=True,
+        cantidad_contratos=5, monto_total_contratos=350_000_000, monto_mm=350.0,
+        cantidad_combinada=35, monto_combinado_mm=2500.0,
+        porcentaje_persistencia=0.75, asigna_bono_combinado=True,
+    )
+    r = compute_commission(p)
+    assert abs(r.porcentaje_comision - 0.002) < 1e-6
+
+
+def test_ge_5g_ac_no_duplica_bono_cuando_solo_lleva_base():
+    rules_store.reload()
+    # Base (no AC existe) — asigna_bono_combinado=True, paga bono
+    base = make_ge(cantidad_combinada=30, monto_combinado_mm=2100.0,
+                   cantidad_contratos=30, monto_total_contratos=2_100_000_000,
+                   monto_mm=2100.0, porcentaje_persistencia=0.75,
+                   asigna_bono_combinado=True)
+    rb = compute_commission(base)
+    assert rb.valor_bono_final >= 1_500_000
+
+
+def test_ge_no_5g_ac_rate_desde_68():
+    rules_store.reload()
+    p = PersonaInput(
+        cedula="geno_ac", nombre="GE NO5G AC",
+        company=Company.AUTO, role=Role.GERENTE_EQUIPO,
+        structure_id="ge_no_5g", is_canal_ac=True,
+        monto_total_contratos=700_000_000, monto_mm=700.0,
+        monto_combinado_mm=2400.0, cantidad_combinada=30,
+        porcentaje_persistencia=0.72, porcentaje_segundo_pago=1.0,
+    )
+    r = compute_commission(p)
+    # AC en No5G: 0.003 desde persi >= 0.68
+    assert abs(r.porcentaje_comision - 0.003) < 1e-6
