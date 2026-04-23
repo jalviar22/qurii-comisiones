@@ -58,6 +58,30 @@ def test_bajo_persistencia_no_paga_comision():
     assert r.valor_comision_final == 0.0
 
 
+def test_aplica_segundo_pago_toggle_off_pays_100pct():
+    """Estructura con aplica_segundo_pago=False debe pagar 100% sin aplicar el factor."""
+    rules_store.reload()
+    structure = rules_store.get_structure("asesores_fonbienes_moto")
+    original = structure.get("aplica_segundo_pago", True)
+    structure["aplica_segundo_pago"] = False
+    try:
+        p = make_asesor_fonbienes(cantidad_contratos=11, porcentaje_persistencia=0.78,
+                                  porcentaje_segundo_pago=0.60)
+        r = compute_commission(p)
+        assert r.factor_segundo_pago == 1.0
+        assert any("sin Segundo Pago" in n for n in r.notas)
+    finally:
+        structure["aplica_segundo_pago"] = original
+
+
+def test_aplica_segundo_pago_default_true_applies_factor():
+    rules_store.reload()
+    p = make_asesor_fonbienes(cantidad_contratos=11, porcentaje_persistencia=0.78,
+                              porcentaje_segundo_pago=0.60)
+    r = compute_commission(p)
+    assert r.factor_segundo_pago == 0.0
+
+
 def test_segundo_pago_75pct_paga_75():
     rules_store.reload()
     p = make_asesor_fonbienes(cantidad_contratos=11, monto_total_contratos=100_000_000,
